@@ -1,5 +1,17 @@
 # Interactive Story Generator: Frontend and Backend Integration
 
+## TODO
+
+/project-root
+  /frontend
+    Dockerfile
+    # other frontend files
+  /backend
+    Dockerfile
+    # other backend files
+  docker-compose.yml
+  # other root files
+
 ## Overview
 
 The **Interactive Story Generator** consists of a **React** frontend and a **Flask** backend. The frontend handles user interaction and displays content, while the backend processes story generation, text-to-speech, and image creation.
