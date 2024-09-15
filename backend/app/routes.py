@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from .utils import generate_story_part, text_to_speech, generate_image
+# from .utils import generate_story_part, text_to_speech, generate_image
+from utils_mock import generate_story_part, text_to_speech, generate_image
 
 story_bp = Blueprint('story', __name__)
 

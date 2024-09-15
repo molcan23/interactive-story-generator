@@ -5,7 +5,7 @@ FROM node:14
 WORKDIR /app
 
 # Install dependencies
-COPY package.json .
+COPY frontend/package.json .
 RUN npm install
 
 # Copy application code
