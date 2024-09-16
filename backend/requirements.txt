@@ -7,4 +7,6 @@ huggingface-hub==0.1.2
 Pillow==10.4.0
 transformers
 torch
-
+langchain
+langchain-ollama
+ollama

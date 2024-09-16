@@ -6,12 +6,14 @@ from huggingface_hub import InferenceApi
 from PIL import Image
 from io import BytesIO
 import base64
+from langchain_ollama import OllamaLLM
+
 
 # Load environment variables
 load_dotenv()
 
-# Hugging Face API for text generation
-huggingface_api = InferenceApi(repo_id="meta-llama/Meta-Llama-3-8B-Instruct", token=os.getenv('HUGGINGFACE_API_KEY'))
+model = OllamaLLM(model="llama3")
+
 
 # Generate story part using Hugging Face model
 def generate_story_part(genre, length, keywords, choice=None):
@@ -22,8 +24,7 @@ def generate_story_part(genre, length, keywords, choice=None):
         # Generate the initial part of the story
         prompt = f"Genre: {genre}, Length: {length} minutes, Keywords: {keywords}"
 
-    response = huggingface_api(prompt)
-    story = response[0]['generated_text']
+    story = model.invoke(input=prompt)
 
     return story
 
