@@ -1,8 +1,19 @@
-from langchain_ollama import OllamaLLM
+# from langchain_ollama import OllamaLLM
+#
+#
+# model = OllamaLLM(model="llama3")
+#
+# result = model.invoke(input="Tell me about Zilina")
+#
+# print(result)
 
+from flask import Flask
 
-model = OllamaLLM(model="llama3")
+app = Flask(__name__)
 
-result = model.invoke(input="Tell me about Zilina")
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
 
-print(result)
+if __name__ == '__main__':
+    app.run()

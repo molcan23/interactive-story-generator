@@ -28,34 +28,34 @@ def generate_story_part(genre, length, keywords, choice=None):
 
     return story
 
-# # Convert story text to audio using Google Cloud Text-to-Speech
-# def text_to_speech(text):
-#     client = texttospeech.TextToSpeechClient()
-#
-#     # Setup input text
-#     synthesis_input = texttospeech.SynthesisInput(text=text)
-#
-#     # Define the voice parameters
-#     voice = texttospeech.VoiceSelectionParams(
-#         language_code="en-US",
-#         name="en-US-Wavenet-D",  # You can choose other voices
-#         ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-#     )
-#
-#     # Define audio configuration
-#     audio_config = texttospeech.AudioConfig(
-#         audio_encoding=texttospeech.AudioEncoding.LINEAR16
-#     )
-#
-#     # Synthesize speech
-#     response = client.synthesize_speech(
-#         input=synthesis_input, voice=voice, audio_config=audio_config
-#     )
-#
-#     # Convert audio to base64 encoding
-#     audio_content = base64.b64encode(response.audio_content).decode('utf-8')
-#     return audio_content
-#
+# Convert story text to audio using Google Cloud Text-to-Speech
+def text_to_speech(text):
+    client = texttospeech.TextToSpeechClient()
+
+    # Setup input text
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+
+    # Define the voice parameters
+    voice = texttospeech.VoiceSelectionParams(
+        language_code="en-US",
+        name="en-US-Wavenet-D",  # You can choose other voices
+        ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+    )
+
+    # Define audio configuration
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16
+    )
+
+    # Synthesize speech
+    response = client.synthesize_speech(
+        input=synthesis_input, voice=voice, audio_config=audio_config
+    )
+
+    # Convert audio to base64 encoding
+    audio_content = base64.b64encode(response.audio_content).decode('utf-8')
+    return audio_content
+
 # # Generate image based on the story using a text-to-image model
 # def generate_image(story_text):
 #     # Placeholder image generation using PIL
