@@ -1,8 +1,8 @@
-from cassandracluster import Cluster
+from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
-from langchain.memory import CassandraChatMessageHistory, ConversationBufferMemory
-from langchain.llms import OpenAI
-from langchain import LLMChain, PromptTemplate
+# from langchain.memory import CassandraChatMessageHistory, ConversationBufferMemory
+# from langchain.llms import OpenAI
+# from langchain import LLMChain, PromptTemplate
 import json
 import os
 
@@ -25,10 +25,12 @@ cluster = Cluster(auth_provider=auth_provider)
 session = cluster.connect()
 
 row = session.execute("select release_version from system.local").one()
+
 if row:
     print(row[0])
 else:
     print('Error')
+
 exit()
 # message_history = CassandraChatMessageHistory(
 #     session_id="anything",
