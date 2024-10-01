@@ -54,4 +54,15 @@ The application is built with **React** on the frontend and **Flask** on the bac
    ```bash
    git clone https://github.com/your-repo/interactive-story-generator.git
    cd interactive-story-generator
+   
 
+2. **LLama 3 8B model usage**
+   
+- First, login needs to be done via
+   ```bash
+   pip install -U "huggingface_hub[cli]"
+   huggingface-cli login
+
+- Then, models need to be downloaded  
+   ```bash
+   huggingface-cli download meta-llama/Meta-Llama-3-8B-Instruct --exclude "original/*" --local-dir meta-llama/Meta-Llama-3-8B-Instruct```

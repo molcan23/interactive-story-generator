@@ -1,54 +1,60 @@
-import pymongo
-import requests
 import os
+import openai
+from pymongo import MongoClient
+import json
+from pymongoarrow.api import write
+import pyarrow as pa
+import pandas as pd
+import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_embedding(text):
+    return openai.Embedding.create(
+        input=text,
+        model=os.getenv("EMBEDDING_MODEL")
+    )['data'][0]['embedding']
 
-client = pymongo.MongoClient(
-    os.environ.get("ATLAS_URI"),
-    connectTimeoutMS=60000
-)
+client = MongoClient(os.getenv("ATLAS_URI"))
 
-db = client.sample_mflix
-collection = db.movies
+db = client['mystorytime']
+collection = db['stories']
 
-hf_token = os.environ.get("HUGGING_FACE_API_KEY")
-embedding_url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+document = {"name": "Lili", "city": "Zilina"}
+inserted_document = collection.insert_one(document)
 
-def generate_embedding(text: str) -> list[float]:
+print(f"Inserted Document ID: {inserted_document.inserted_id}")
 
-    response = requests.post(
-        embedding_url,
-        headers={"Authorization": f"Bearer {hf_token}"},
-        json={"inputs": text})
+# Query for documents with a specific city
+query = {"city": "Sabinov"}
+documents = collection.find(query)
 
-    if response.status_code != 200:
-        raise ValueError(f"Request failed with status code {response.status_code}: {response.text}")
+for document in documents:
+    # Extract the name field from each document
+    retrieved_vector = document["name"]
+    print(retrieved_vector)
 
-    return response.json()
+print(retrieved_vector)
+client.close()
 
-for doc in collection.find({'plot':{"$exists": True}}).limit(50):
-    doc['plot_embedding_hf'] = generate_embedding(doc['plot'])
-    collection.replace_one({'_id': doc['_id']}, doc)
 
-query = "imaginary characters from outer space at war"
-
-results = collection.aggregate([
-    {"$vectorSearch": {
-        "queryVector": generate_embedding(query),
-        "path": "plot_embedding_hf",
-        "numCandidates": 100,
-        "limit": 5,
-        "index": "PlotSemanticSearch",
-    }}
-]);
-
-print(f"{results}")
-
-for document in results:
-    print("AAA")
-    print(f'Movie Name: {document["title"]},\nMovie Plot: {document["plot"]}\n')
-
-print(f"{results}")
+# query = "imaginary characters from outer space at war"
+#
+# results = collection.aggregate([
+#     {"$vectorSearch": {
+#         "queryVector": generate_embedding(query),
+#         "path": "plot_embedding_hf",
+#         "numCandidates": 100,
+#         "limit": 5,
+#         "index": "PlotSemanticSearch",
+#     }}
+# ]);
+#
+# print(f"{results}")
+#
+# for document in results:
+#     print("AAA")
+#     print(f'Movie Name: {document["title"]},\nMovie Plot: {document["plot"]}\n')
+#
+# print(f"{results}")
