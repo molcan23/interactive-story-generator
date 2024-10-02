@@ -1,19 +1,20 @@
-import pymongo
-import requests
 import os
+import random
+import pymongo
 from dotenv import load_dotenv
-import torch
-from transformers import AutoTokenizer, AutoModel
+from langchain_core.prompts import ChatPromptTemplate
+# from langchain_ollama import OllamaLLM
 
-# from langchain_community.llms import HuggingFaceInference
-from langchain import LLMChain, PromptTemplate
-from langchain.memory import ConversationBufferMemory
-from langchain_huggingface import HuggingFacePipeline
-from huggingface_hub import login
+# Remote Llama
+from langchain_ollama.llms import OllamaLLM
+llama_model = OllamaLLM(model="llama3.1")
 
-login()
+# # Local Llama - not really
+# from langchain_community.llms import Ollama
+# llama_model = Ollama(model="mistral")
+
+# login()
 load_dotenv()
-
 
 # MongoDB Atlas connection
 client = pymongo.MongoClient(
@@ -21,7 +22,7 @@ client = pymongo.MongoClient(
     connectTimeoutMS=60000
 )
 
-db = client.your_database_name  # Replace with your database name
+db = client.mystorytime  # Replace with your database name
 story_collection = db.story_parts  # Replace with your story parts collection name
 
 
@@ -37,13 +38,28 @@ def get_chat_history(story_id: str, user_id: str) -> tuple[list[str], str]:
         tuple[list[str], str]: A tuple containing the chat history as a list of strings and the concatenated summary as a string.
     """
 
-    story_parts = story_collection.find({"story_id": story_id, "user_id": user_id}).sort("order", 1)  # Sort by order for chronological retrieval
-    chat_history = [part["text"] for part in story_parts]
-    concatenated_summary = " ".join([part["text"] for part in story_parts])  # Concatenate summaries
-    return chat_history, concatenated_summary
+    story_parts = (
+        story_collection.find({"story_id": story_id, "user_id": user_id}).sort("order", 1)
+    )
+
+    if not story_parts:
+        return "", 1
+
+    story_parts_list = []
+    part_num = -1
+
+    for part in story_parts:
+        story_parts_list.append(part["text"])
+        part_num = part["part_num"]
+        
+    # Concatenate summaries
+    concatenated_summary = " ".join(story_parts_list)
+
+    # return chat_history, concatenated_summary
+    return concatenated_summary, part_num
 
 
-def save_story_part(story_id: str, user_id: str, text: str, order: int) -> None:
+def save_story_part(story_id: str, user_id: str, part_num: int, text: str, order: int) -> None:
     """
     Saves a new story part to the database.
 
@@ -54,62 +70,105 @@ def save_story_part(story_id: str, user_id: str, text: str, order: int) -> None:
         order (int): The order of the story part within the story.
     """
 
-    story_part = {"story_id": story_id, "user_id": user_id, "text": text, "order": order}
+    story_part = {"story_id": story_id, "user_id": user_id, "part_num": part_num, "text": text, "order": order}
     story_collection.insert_one(story_part)
 
 
-# Initialize memory
-cass_buff_memory = ConversationBufferMemory()
+def generate_story_part(
+        narrative,  learning_topic, number_of_parts, part_num=1,
+        story_summary="Beginning", user_input="Random choice"):
+    # Create a runnable sequence with prompt and LLM using pipe operator
+    runnable_sequence = story_specification_template | llama_model
 
-# Prompt template
-template = """
-You are now the guide of a mystical journey in the Whispering Woods.
-A traveler named Elara seeks the lost Gem of Serenity.
-You must navigate her through challenges, choices, and consequences,
-dynamically adapting the tale based on the traveler's decisions.
-Your goal is to create a branching narrative experience where each choice
-leads to a new path, ultimately determining Elara's fate.
+    # Prepare inputs as a dictionary for invocation
+    inputs = {
+        "narrative": narrative,
+        "learning_topic": learning_topic,
+        "number_of_parts": number_of_parts,
+        "part_num": part_num,
+        "story_summary": story_summary,
+        "user_input": user_input
+    }
 
-Here are some rules to follow:
-1. Start by asking the player to choose some kind of weapons that will be used later in the game
-2. Have a few paths that lead to success
-3. Have some paths that lead to death. If the user dies generate a response that explains the death and ends in the text: "The End.", I will search for this text to end the game
+    # Generate a response using the runnable sequence
+    response = runnable_sequence.invoke(inputs)
 
-Here is the chat history, use this to understand what to say next: {chat_history}
-Human: {human_input}
-AI:"""
+    # Save the new story part
+    save_story_part(story_id, user_id, part_num, response, order=-1)
 
-prompt = PromptTemplate(
-    input_variables=["chat_history", "human_input"],
-    template=template
-)
-
-# Replace 'path/to/your/llama-3-model' with the actual path to your LLaMA 3 model
-llm = HuggingFacePipeline.from_model_id(
-    model_id="meta-llama/Llama-3.1-8B",
-    task="text-generation",
-)
+    return response
 
 
-llm_chain = LLMChain(
-    llm=llm,
-    prompt=prompt,
-    memory=cass_buff_memory
+# TODO uncomment when chain is working
+# narrative = input("Choose the narrative:\n")
+# learning_topic = input("Choose the learning topic:\n")
+# number_of_parts = input("Choose the story length:\n")
+# story_summary = ""
+
+narrative = "shrek"
+learning_topic = "spanish colors"
+number_of_parts = "3"
+story_summary = ""
+
+# This feature needs to be tested (#words/minute etc.)
+# length = input("Choose the length of the story:\n")
+
+
+# Define the prompt template using ChatPromptTemplate
+story_specification_template = ChatPromptTemplate.from_template(
+    f"""
+    You are now the narrator of an exciting story for kids.
+    The story plot revolves around {{narrative}}.
+
+    Use the following context to seamlessly continue the story: 
+    Here is the current story summary: {{story_summary}} 
+
+    Your task is to create an engaging tale that begins with a unique and captivating opening each time.
+    Ensure that each part is distinct and does not repeat or reference earlier parts explicitly, but maintains continuity.
+
+    As you narrate, guide the user (kid) through thrilling challenges, choices, and consequences,
+    dynamically adapting the tale based on their decisions. Each choice should lead to a new and unexpected path.
+
+    Here are some guidelines to follow:
+    1. Begin each story part with a distinct and creative opening that captures attention.
+    2. Each story part should contain 150-200 words and end after {{number_of_parts}} parts.
+    3. Introduce new challenges or twists in every part to keep the narrative exciting and engaging.
+    4. Integrate the learning topic naturally into the story without disrupting its flow.
+    5. Each story part must end strictly with two choices marked as A and B, without any additional text, 
+    except for the last one (number {{number_of_parts}}).
+
+    This is the story part number {{part_num}}.
+    
+    Emphasizing, if {{part_num}} is equal to {{number_of_parts}} story MUST finish with an ending 
+    (with conclusion) and with The end.
+    
+
+    AI:
+    """
 )
 
 # Main conversation loop
-story_id = "story_000001"
+story_id = f"story_{str(random.randint(0, 100000))}"
 user_id = "user123"
 
-while True:
-    chat_history, concatenated_summary = get_chat_history(story_id, user_id)
+response = generate_story_part(narrative,  learning_topic, number_of_parts)
 
-    # Generate a response using the LLMChain
-    response = llm_chain.run(chat_history=chat_history, human_input=input("What are you doing"))
+print(response)
+
+while True:
+    story_summary, part_num = get_chat_history(story_id, user_id)
+
+    user_input = input("What do you want to do?\n")
+
+    response = generate_story_part(narrative,  learning_topic, number_of_parts, part_num+1, story_summary, user_input)
+
+    print(response)
 
     # Check if the response indicates the end of the game
     if "The End." in response:
         break
 
-    # Save the new story part
-    save_story_part(story_id, user_id, response, order=-1)
+    print(f"\nHISTORY: {story_summary[:20]}\nPART NUM: {part_num}\n")
+
+
+client.close()
