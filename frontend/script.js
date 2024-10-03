@@ -19,43 +19,28 @@ function startStory() {
     })
         .then(response => response.json())
         .then(data => {
-            document.getElementById('story-summary').value = data.part; // Display the first part of the story
+            // Displaying Story Name
+            document.getElementById('story-name').innerText = data.story_name;
 
-            // Generate voice for the story part
-            fetch('http://127.0.0.1:5000/generate_voice', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ text: data.part })
-            })
-                .then(voiceResponse => voiceResponse.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const playButton = document.getElementById('play-voice');
-                    playButton.style.display = 'inline';
-                    playButton.onclick = () => {
-                        const audio = new Audio(url);
-                        audio.play();
-                    };
-                });
+            // Displaying Story Text
+            document.getElementById('story-summary').value = data.story_text;
 
-            // Generate image for the story part
-            fetch('http://127.0.0.1:5000/generate_image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt: narrative }) // Adjust prompt as needed
-            })
-                .then(imageResponse => imageResponse.json())
-                .then(imageData => {
-                    const imgElement = document.getElementById('story-image');
-                    imgElement.src = imageData.image_url; // Set the generated image URL
-                    imgElement.style.display = 'block'; // Show the image
-                });
+            // Displaying Choices
+            const choiceAButton = document.getElementById('choice-a');
+            const choiceBButton = document.getElementById('choice-b');
+
+            choiceAButton.innerText = data.choices[0]; // Set text for Choice A
+            choiceBButton.innerText = data.choices[1]; // Set text for Choice B
+
+            choiceAButton.style.display = 'inline'; // Show Choice A button
+            choiceBButton.style.display = 'inline'; // Show Choice B button
 
             document.getElementById('response').innerText = "Story started successfully!";
+
+            // Add event listeners for choices (optional)
+            choiceAButton.onclick = () => handleChoice(data.choices[0]);
+            choiceBButton.onclick = () => handleChoice(data.choices[1]);
+
         })
         .catch(error => {
             console.error('Error:', error);
@@ -80,41 +65,18 @@ function continueStory() {
             if (data.error) {
                 document.getElementById('response').innerText = data.error; // Display error message if any
             } else {
-                document.getElementById('story-summary').value += "\n\n" + data.part; // Append new part to the summary
+                // Displaying Story Text
+                document.getElementById('story-summary').value += "\n\n" + data.story_text; // Append new part to the summary
 
-                // Generate voice for the new story part
-                fetch('http://127.0.0.1:5000/generate_voice', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: data.part })
-                })
-                    .then(voiceResponse => voiceResponse.blob())
-                    .then(blob => {
-                        const url = URL.createObjectURL(blob);
-                        const playButton = document.getElementById('play-voice');
-                        playButton.style.display = 'inline';
-                        playButton.onclick = () => {
-                            const audio = new Audio(url);
-                            audio.play();
-                        };
-                    });
+                // Displaying Choices
+                const choiceAButton = document.getElementById('choice-a');
+                const choiceBButton = document.getElementById('choice-b');
 
-                // Generate image for the new story part
-                fetch('http://127.0.0.1:5000/generate_image', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ prompt: data.part }) // Use appropriate prompt for image generation
-                })
-                    .then(imageResponse => imageResponse.json())
-                    .then(imageData => {
-                        const imgElement = document.getElementById('story-image');
-                        imgElement.src = imageData.image_url; // Set the generated image URL
-                        imgElement.style.display = 'block'; // Show the image
-                    });
+                choiceAButton.innerText = data.choices[0]; // Set text for Choice A
+                choiceBButton.innerText = data.choices[1]; // Set text for Choice B
+
+                choiceAButton.style.display = 'inline'; // Show Choice A button
+                choiceBButton.style.display = 'inline'; // Show Choice B button
 
                 document.getElementById('response').innerText = "Story continued successfully!";
             }
@@ -123,4 +85,10 @@ function continueStory() {
             console.error('Error:', error);
             document.getElementById('response').innerText = "Error continuing story.";
         });
+}
+
+// Function to handle user choices (optional)
+function handleChoice(choice) {
+    alert(`You selected: ${choice}`);
+    // Additional logic based on user choice can be added here.
 }

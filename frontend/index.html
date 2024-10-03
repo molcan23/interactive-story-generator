@@ -9,9 +9,10 @@
 <body>
 <div class="container">
     <h1>Interactive Story Generator</h1>
-    <div id="story-container">
-        <textarea id="story-summary" rows="10" cols="50" placeholder="Story summary will appear here..." readonly></textarea>
-    </div>
+
+    <!-- Section for Story Name -->
+    <h2 id="story-name"></h2>
+
     <div id="input-container">
         <input type="text" id="narrative" placeholder="Enter narrative (e.g., Shrek)">
         <input type="text" id="learning-topic" placeholder="Enter learning topic (e.g., Spanish colors)">
@@ -19,11 +20,25 @@
         <button id="start-story">Start Story</button>
         <button id="continue-story">Continue Story</button>
     </div>
+
+    <!-- Section for Story Text -->
+    <div id="story-container">
+        <textarea id="story-summary" rows="10" cols="50" placeholder="Story summary will appear here DAMN..." readonly></textarea>
+    </div>
+
+    <!-- Section for Choices -->
+    <div id="choices-container">
+        <button id="choice-a">Choice A</button>
+        <button id="choice-b">Cheice B</button>
+    </div>
+
+
     <div id="response-container">
         <p id="response"></p>
-        <button id="play-voice" style="display:none;">Play Voice</button>
+        <button id="play-voice">Play Voice</button>
         <img id="story-image" src="" alt="Story Image" style="display:none; width:100%; max-height:300px;">
     </div>
+
 </div>
 
 <script src="script.js"></script>

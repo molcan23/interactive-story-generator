@@ -143,3 +143,33 @@ def text_to_speech(text):
 #     encoded_img = base64.b64encode(img_byte_arr).decode('utf-8')
 #
 #     return encoded_img
+
+def parse_story_response(response):
+    # Splitting the response based on presumed sections marked by newlines
+    print(f"RESPONSE: {response}\n\n")
+    response = response.strip()
+
+    if 'WHAT WILL YOU DO?' in response:
+        parts = response.split('WHAT WILL YOU DO?')[1].strip()
+    else:
+        exit()  # raise ValueError('Expected section header for choices not found in the last section.')
+
+    body = parts[0]
+
+    # Extract choices part
+    choices = parts[1].strip().lower().split("\n")
+
+    print(f"PARTS: {parts[1]}")
+    print(f"CHOICES: {choices}")
+
+    # Split on 'A) ' and 'B) ' to get choices
+    choice_a = choices[0]
+    choice_b = choices[1]
+
+    # Return a dictionary with the parsed elements
+    return {
+        "story_name": "STORY NAME TODO",
+        "story_text": body,
+        "choice_a": choice_a,
+        "choice_b": choice_b
+    }

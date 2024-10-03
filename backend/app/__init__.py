@@ -1,7 +1,8 @@
-# from flask_cors import CORS
+from flask_cors import CORS
 from flask import Flask
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Import other modules from your app directory here
 from . import routes

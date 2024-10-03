@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask import send_file
 from gtts import gTTS
 from app import app
-from app.utils import generate_story_part, get_chat_history, save_story_part
+from app.utils import generate_story_part, get_chat_history, save_story_part, parse_story_response
 from app.prompt_templates import story_specification_template
 import random
 import requests
@@ -21,10 +21,18 @@ def start_story():
 
     response = generate_story_part(story_id, user_id, narrative, learning_topic, number_of_parts)
 
-    # Save the first part of the story in MongoDB
-    save_story_part(story_id, user_id, 1, response.strip(), order=-1)
+    # Parse the generated response
+    parsed_response = parse_story_response(response)
 
-    return jsonify({"story_id": story_id, "part": response.strip()})
+    # Save the first part of the story in MongoDB
+    save_story_part(story_id, user_id, 1, parsed_response['story_text'], order=-1)
+
+    return jsonify({
+        "story_id": story_id,
+        "story_name": parsed_response["story_name"],
+        "story_text": parsed_response["story_text"],
+        "choices": [parsed_response["choice_a"], parsed_response["choice_b"]]
+    })
 
 
 @app.route('/continue_story', methods=['POST'])
@@ -52,10 +60,16 @@ def continue_story():
         number_of_parts=str(part_num + 1), part_num=part_num + 1, story_summary=story_summary
     )
 
-    # Save new part in MongoDB
-    save_story_part(story_id, user_id, part_num + 1, response.strip(), order=-1)
+    # Parse the generated response
+    parsed_response = parse_story_response(response)
 
-    return jsonify({"part": response.strip()})
+    # Save new part in MongoDB
+    save_story_part(story_id, user_id, part_num + 1, parsed_response['story_text'], order=-1)
+
+    return jsonify({
+        "story_text": parsed_response["story_text"],
+        "choices": [parsed_response["choice_a"], parsed_response["choice_b"]]
+    })
 
 
 @app.route('/generate_voice', methods=['POST'])

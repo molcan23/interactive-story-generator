@@ -21,8 +21,19 @@ story_specification_template = ChatPromptTemplate.from_template(
     2. Each story part should contain 150-200 words and end after {{number_of_parts}} parts.
     3. Introduce new challenges or twists in every part to keep the narrative exciting and engaging.
     4. Integrate the learning topic naturally into the story without disrupting its flow.
-    5. Each story part must end strictly with two choices marked as A and B, without any additional text, 
-    except for the last one (number {{number_of_parts}}).
+    5. No story name at the beginning
+    5. The output template is as follows (with the names of the parts printed):
+    
+        STORY: text of the part
+        WHAT WILL YOU DO?
+        CHOICE A: description of first action
+        CHOICE B: description of second option     
+        
+        Do not add any * or special characters for the names of structure parts!!!  
+        
+    6. Each story part must end strictly with two choices marked as A and B, without any additional text.  
+    7. The last part of the story (number {{number_of_parts}}) is an exception and it will end with a happy ending
+    and a phrase "The end".
 
     This is the story part number {{part_num}}.
     
