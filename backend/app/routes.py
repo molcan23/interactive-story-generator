@@ -1,55 +1,93 @@
-from flask import Blueprint, request, jsonify
-# from .utils import generate_story_part, text_to_speech, generate_image
-from app.utils import generate_story_part , text_to_speech  # , generate_image
+from flask import Flask, request, jsonify
+from flask import send_file
+from gtts import gTTS
+from app import app
+from app.utils import generate_story_part, get_chat_history, save_story_part
+from app.prompt_templates import story_specification_template
+import random
+import requests
 
 
-story_bp = Blueprint('story', __name__)
-
-# curl -X POST -H "Content-type: application/json"
-# -d "{\"genre\": \"fantasy\", \"length\": \"short\", \"keywords\": [\"dragon\", \"princess\"]}"
-# "localhost:5000/generate-story"
-
-# Route for generating the initial story
-@story_bp.route('/generate-story', methods=['POST'])
-def generate_story():
+@app.route('/start_story', methods=['POST'])
+def start_story():
     data = request.json
-    genre = data.get('genre')
-    length = data.get('length')
-    keywords = data.get('keywords')
+    narrative = data.get('narrative')
+    learning_topic = data.get('learning_topic')
+    number_of_parts = int(data.get('number_of_parts'))
 
-    context = """
-        Be
-    """
+    # Generate the first part of the story
+    story_id = f"story_{str(random.randint(0, 100000))}"
+    user_id = "user123"
 
-    story = generate_story_part(context, genre, length, keywords)
-    # audio = text_to_speech(story)
+    response = generate_story_part(story_id, user_id, narrative, learning_topic, number_of_parts)
 
-    # return jsonify({'story': story, 'audio': audio})
-    return jsonify({'story': story})
+    # Save the first part of the story in MongoDB
+    save_story_part(story_id, user_id, 1, response.strip(), order=-1)
+
+    return jsonify({"story_id": story_id, "part": response.strip()})
 
 
-# Route for generating the next part of the story based on user choice
-@story_bp.route('/generate-next-story-part', methods=['POST'])
+@app.route('/continue_story', methods=['POST'])
 def continue_story():
     data = request.json
-    choice = data.get('choice')
+    story_id = data.get('story_id')
 
-    # Generate the next part of the story based on the user's choice
-    story = generate_story_part(None, None, None, choice=choice)
-    # audio = text_to_speech(story)
+    if not story_id:
+        return jsonify({"error": "Story ID is required"}), 400
 
-    # Provide new choices for the user
-    choices = ["Continue with option 1", "Continue with option 2"]
+    narrative = data.get('narrative')
+    learning_topic = data.get('learning_topic')
 
-    # return jsonify({'story': story, 'audio': audio, 'choices': choices})
-    return jsonify({'story': story, 'choices': choices})
+    # TODO
+    # Get current chat history and part number
+    user_id = "user123"
+
+    story_summary, part_num = get_chat_history(story_id, user_id)
+
+    if not story_summary:
+        return jsonify({"error": "No previous parts found"}), 404
+
+    response = generate_story_part(
+        story_id, user_id, narrative, learning_topic,
+        number_of_parts=str(part_num + 1), part_num=part_num + 1, story_summary=story_summary
+    )
+
+    # Save new part in MongoDB
+    save_story_part(story_id, user_id, part_num + 1, response.strip(), order=-1)
+
+    return jsonify({"part": response.strip()})
 
 
-# # Route for generating an image based on the story content
-# @story_bp.route('/generate-image', methods=['POST'])
-# def generate_image_endpoint():
-#     data = request.json
-#     story_text = data.get('story_text')
-#
-#     image = generate_image(story_text)
-#     return jsonify({'image': image})
+@app.route('/generate_voice', methods=['POST'])
+def generate_voice():
+    data = request.json
+    text = data.get('text', '')
+
+    if not text:
+        return jsonify({"error": "Text is required"}), 400
+
+    # Generate audio using gTTS
+    tts = gTTS(text=text, lang='en')
+    audio_file_path = 'story.mp3'  # You may want to make this unique per story part
+    tts.save(audio_file_path)
+
+    return send_file(audio_file_path, as_attachment=True)
+
+
+@app.route('/generate_image', methods=['POST'])
+def generate_image():
+    data = request.json
+    prompt = data.get('prompt', '')
+
+    if not prompt:
+        return jsonify({"error": "Prompt is required"}), 400
+
+    # Example using a placeholder image service (replace with actual image generation API)
+    response = requests.get(f"https://api.example.com/generate-image?prompt={prompt}")
+
+    if response.status_code != 200:
+        return jsonify({"error": "Failed to generate image"}), 500
+
+    image_url = response.json().get('image_url')  # Adjust according to the API response structure
+
+    return jsonify({"image_url": image_url})

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <h1>Interactive Story Generator</h1>
+    <div id="story-container">
+        <textarea id="story-summary" rows="10" cols="50" placeholder="Story summary will appear here..." readonly></textarea>
+    </div>
+    <div id="input-container">
+        <input type="text" id="narrative" placeholder="Enter narrative (e.g., Shrek)">
+        <input type="text" id="learning-topic" placeholder="Enter learning topic (e.g., Spanish colors)">
+        <input type="number" id="number-of-parts" placeholder="Number of parts (e.g., 3)">
+        <button id="start-story">Start Story</button>
+        <button id="continue-story">Continue Story</button>
+    </div>
+    <div id="response-container">
+        <p id="response"></p>
+        <button id="play-voice" style="display:none;">Play Voice</button>
+        <img id="story-image" src="" alt="Story Image" style="display:none; width:100%; max-height:300px;">
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

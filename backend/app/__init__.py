@@ -1,11 +1,10 @@
+# from flask_cors import CORS
 from flask import Flask
-from flask_cors import CORS
 
-def create_app():
-    app = Flask(__name__)
-    CORS(app)  # Allows cross-origin requests
+app = Flask(__name__)
 
-    from .routes import story_bp
-    app.register_blueprint(story_bp)
-
-    return app
+# Import other modules from your app directory here
+from . import routes
+from . import utils
+# from . import prompt_templates
+# from . import backhand_variables

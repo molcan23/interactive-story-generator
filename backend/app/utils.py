@@ -1,73 +1,107 @@
 import requests
 import os
 from google.cloud import texttospeech
-from dotenv import load_dotenv
-from huggingface_hub import InferenceApi
 from PIL import Image
 from io import BytesIO
 import base64
-from langchain_ollama import OllamaLLM
+import pymongo
+from dotenv import load_dotenv
+from .prompt_templates import story_specification_template
+
+from .backand_variables import llama_model
 
 
-# Load environment variables
+# login()
 load_dotenv()
 
-model = OllamaLLM(model="llama3")
+# MongoDB Atlas connection
+client = pymongo.MongoClient(
+    os.environ.get("ATLAS_URI"),
+    connectTimeoutMS=60000
+)
+
+db = client.mystorytime  # Replace with your database name
+story_collection = db.story_parts  # Replace with your story parts collection name
 
 
-# Generate story part using Hugging Face model
-def generate_story_part(
-        genre="sci-fi",
-        topic="colors in spanish",
-        keywords=["aliens", "moon"],  # default should be a list
-        choice=None,
-        story_part=0,
-        length_of_story=10,
-        story_summary=None,
-):
-    # TODO: parameters from curl are not correct (order, Nones)
-    print(f"SUMMARY: {story_summary}")
-    print(f"GENRE: {genre}")
-    print(f"TOPIC: {topic}")
-    print(f"KEYWORDS: {keywords}")
-    print("\n\n")
+def get_chat_history(story_id: str, user_id: str) -> tuple[list[str], str]:
+    """
+    Retrieves the chat history and concatenated summary for a given story ID and user ID.
 
-    prompt = f"Generate a story part {story_part} of {length_of_story}"
-    if choice:
-        prompt += (f"Continuing the story \"{story_summary}\" based on the choice: \"{choice}\". "
-                  f"Directly continue with the story, so be careful about any inconsistencies! "
-                  f"Be careful about repeating sentences in the whole story, sudden changes of places,"
-                  f" characters and items")
-    else:
-        # Generate the initial part of the story
-        prompt += (f"Generate an introduction 60-70 words long to a story."
-                  f"Genre: {genre}, Keywords: {keywords}, Teaching topic: {topic} - do not forget to include "
-                  f"at least one learning thing in the whole story!")
+    Args:
+        story_id (str): The unique identifier for the story.
+        user_id (str): The unique identifier for the user.
 
-    prompt += f"""
-        Return ONLY a json dictionary with the following keys: 
-        - \"new_story_part\" with the generated story (at least 60 words) as the value,
-        - \"story_summary\" with the previous story summary with additional 
-            sentence (10-15 words) summarizing the currently generated story part,
-        - \"choice 1\" and \"choice 2\" with 2 options for the user to choose from for continuing the story.
-        
-        Try to include the teaching topic provided - subtly teach the (kid) user.
-        
-        If the story should end (part {length_of_story} of {length_of_story}), end the story with some nice ending and
-        return None for the both choices and the story_summary.   
+    Returns:
+        tuple[list[str], str]: A tuple containing the chat history as a list of strings and the concatenated summary as a string.
     """
 
-    print(prompt)
-    story = model.invoke(input=prompt)
-    print()
-    print(story)
+    story_parts = (
+        story_collection.find({"story_id": story_id, "user_id": user_id}).sort("order", 1)
+    )
 
-    return story
+    if not story_parts:
+        return "", 1
+
+    story_parts_list = []
+    part_num = -1
+
+    for part in story_parts:
+        story_parts_list.append(part["text"])
+        part_num = part["part_num"]
+
+    # Concatenate summaries
+    concatenated_summary = " ".join(story_parts_list)
+
+    # return chat_history, concatenated_summary
+    return concatenated_summary, part_num
+
+
+def save_story_part(story_id: str, user_id: str, part_num: int, text: str, order: int) -> None:
+    """
+    Saves a new story part to the database.
+
+    Args:
+        story_id (str): The unique identifier for the story.
+        user_id (str): The unique identifier for the user.
+        text (str): The text of the story part.
+        order (int): The order of the story part within the story.
+    """
+
+    story_part = {"story_id": story_id, "user_id": user_id, "part_num": part_num, "text": text, "order": order}
+    story_collection.insert_one(story_part)
+
+
+def generate_story_part(
+        story_id: str, user_id: str,
+        narrative,  learning_topic, number_of_parts, part_num=1,
+        story_summary="Beginning", user_input="Random choice"):
+
+    # Create a runnable sequence with prompt and LLM using pipe operator
+    runnable_sequence = story_specification_template | llama_model
+
+    # Prepare inputs as a dictionary for invocation
+    inputs = {
+        "narrative": narrative,
+        "learning_topic": learning_topic,
+        "number_of_parts": number_of_parts,
+        "part_num": part_num,
+        "story_summary": story_summary,
+        "user_input": user_input
+    }
+
+    # Generate a response using the runnable sequence
+    response = runnable_sequence.invoke(inputs)
+
+    # Save the new story part
+    save_story_part(story_id, user_id, part_num, response, order=-1)
+
+    return response
 
 
 # Convert story text to audio using Google Cloud Text-to-Speech
 def text_to_speech(text):
-    client = texttospeech.TextToSpeechClient()
+    speech_client = texttospeech.TextToSpeechClient()
 
     # Setup input text
     synthesis_input = texttospeech.SynthesisInput(text=text)
@@ -85,7 +119,7 @@ def text_to_speech(text):
     )
 
     # Synthesize speech
-    response = client.synthesize_speech(
+    response = speech_client.synthesize_speech(
         input=synthesis_input, voice=voice, audio_config=audio_config
     )
 

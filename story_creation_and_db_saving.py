@@ -147,6 +147,8 @@ story_specification_template = ChatPromptTemplate.from_template(
     """
 )
 
+# TODO: fix the ending of the story so it actually ends after 'number_of_pats'
+
 # Main conversation loop
 story_id = f"story_{str(random.randint(0, 100000))}"
 user_id = "user123"
