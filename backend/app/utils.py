@@ -77,6 +77,7 @@ def generate_story_part(
         narrative,  learning_topic, number_of_parts, part_num=1,
         story_summary="Beginning", user_input="Random choice"):
 
+    print(f"STORY_ID: {story_id}")
     # Create a runnable sequence with prompt and LLM using pipe operator
     runnable_sequence = story_specification_template | llama_model
 
@@ -145,12 +146,11 @@ def text_to_speech(text):
 #     return encoded_img
 
 def parse_story_response(response):
-    # Splitting the response based on presumed sections marked by newlines
     print(f"RESPONSE: {response}\n\n")
-    response = response.strip()
+    response = str(response).strip()
 
     if 'WHAT WILL YOU DO?' in response:
-        parts = response.split('WHAT WILL YOU DO?')[1].strip()
+        parts = response.split('WHAT WILL YOU DO?')
     else:
         exit()  # raise ValueError('Expected section header for choices not found in the last section.')
 
@@ -159,8 +159,13 @@ def parse_story_response(response):
     # Extract choices part
     choices = parts[1].strip().lower().split("\n")
 
-    print(f"PARTS: {parts[1]}")
-    print(f"CHOICES: {choices}")
+    # print(f"BODY: {body}\n\n")
+    # print(f"BODY: {body}\n\n")
+    print(f"PARTS: {parts}\n\n")
+    # print(parts, "\n\n")
+    print(f"CHOICES: {choices[0]}\n\n")
+    print(choices)
+    # print(f"CHOICES: {parts}\n\n")
 
     # Split on 'A) ' and 'B) ' to get choices
     choice_a = choices[0]
