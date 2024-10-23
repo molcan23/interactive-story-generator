@@ -10,8 +10,10 @@ story_specification_template = ChatPromptTemplate.from_template(
     Use the following context to seamlessly continue the story: 
     Here is the current story summary: {{story_summary}} 
 
-    Your task is to create an engaging tale that begins with a unique and captivating opening each time.
-    Ensure that each part is distinct and does not repeat or reference earlier parts explicitly, but maintains continuity.
+    Your task is to create an engaging tale that begins with a unique and captivating opening 
+    each time while you want to teach {{learning_topic}}.
+    Ensure that each part is distinct and does not repeat or reference earlier parts explicitly,
+    but maintains continuity.
 
     As you narrate, guide the user (kid) through thrilling challenges, choices, and consequences,
     dynamically adapting the tale based on their decisions. Each choice should lead to a new and unexpected path.
@@ -26,7 +28,7 @@ story_specification_template = ChatPromptTemplate.from_template(
     
         STORY: text of the part
         WHAT WILL YOU DO?
-        CHOICE A: description of first action
+        CHOICE A: description of first option
         CHOICE B: description of second option     
         
         Do not add any * or special characters for the names of structure parts!!!  
